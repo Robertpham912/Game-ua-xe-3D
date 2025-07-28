@@ -1,0 +1,90 @@
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Đường đua
+let trackLength = 200;
+let trackGeometry = new THREE.PlaneGeometry(50, trackLength);
+let trackMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+let track = new THREE.Mesh(trackGeometry, trackMaterial);
+track.rotation.x = -Math.PI / 2;
+scene.add(track);
+
+// Vạch đích
+let finishLineGeometry = new THREE.PlaneGeometry(50, 2);
+let finishLineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+let finishLine = new THREE.Mesh(finishLineGeometry, finishLineMaterial);
+finishLine.rotation.x = -Math.PI / 2;
+finishLine.position.z = -trackLength/2 + 5;
+scene.add(finishLine);
+
+// Xe
+function createCar(color, x) {
+  let geometry = new THREE.BoxGeometry(2,1,4);
+  let material = new THREE.MeshBasicMaterial({ color });
+  let car = new THREE.Mesh(geometry, material);
+  car.position.set(x, 0.5, trackLength/2 - 10);
+  scene.add(car);
+  return car;
+}
+
+let car1 = createCar(0xff0000, -6);
+let car2 = createCar(0x00ff00, 0);
+let car3 = createCar(0x0000ff, 6);
+
+camera.position.set(0, 30, 100);
+camera.lookAt(0, 0, 0);
+
+// Điều khiển cảm ứng
+let move = {
+  car1: {up:false, down:false, left:false, right:false},
+  car2: {up:false, down:false, left:false, right:false},
+  car3: {up:false, down:false, left:false, right:false}
+};
+
+document.querySelectorAll("button").forEach(btn => {
+  btn.addEventListener("touchstart", e => {
+    move[`car${btn.dataset.car}`][btn.dataset.dir] = true;
+  });
+  btn.addEventListener("touchend", e => {
+    move[`car${btn.dataset.car}`][btn.dataset.dir] = false;
+  });
+});
+
+// Kiểm tra thắng cuộc
+let winner = null;
+function checkWinner(car, carName) {
+  if (car.position.z <= finishLine.position.z && !winner) {
+    winner = carName;
+    setTimeout(() => {
+      alert(`🏆 Xe ${carName.slice(-1)} đã thắng cuộc!`);
+      location.reload(); // chơi lại
+    }, 100);
+  }
+}
+
+// Di chuyển xe
+function moveCar(car, carMove, carName) {
+  if (carMove.up) car.position.z -= 0.5;
+  if (carMove.down) car.position.z += 0.3;
+  if (carMove.left) car.position.x -= 0.3;
+  if (carMove.right) car.position.x += 0.3;
+
+  checkWinner(car, carName);
+}
+
+// Vòng lặp game
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (!winner) {
+    moveCar(car1, move.car1, "car1");
+    moveCar(car2, move.car2, "car2");
+    moveCar(car3, move.car3, "car3");
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
